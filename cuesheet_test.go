@@ -35,8 +35,9 @@ var minimalCueSheet = CueSheet{
 }
 
 var allCueSheet = CueSheet{
-	FileName: "sample.flac",
-	Format:   "WAVE",
+	AlbumPerformer: "Sample Album Artist",
+	FileName:       "sample.flac",
+	Format:         "WAVE",
 	Tracks: []Track{
 		{
 			Type: "AUDIO",

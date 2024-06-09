@@ -15,11 +15,12 @@ import (
 const (
 	// trimChars contains the characters to be trimmed from a string.
 	// These are: space, double quote, tab, newline.
-	trimChars = ` ` + `"` + `\t` + `\n`
+	trimChars = " " + `"` + "\t" + "\n"
 
 	minLineFields = 2
 
 	fileParams  = 2
+	trackParams = 2
 	indexParams = 2
 
 	maxTracks = 99
@@ -40,9 +41,10 @@ type Track struct {
 // CueSheet represents the contents of a cue sheet file.
 // Required fields: FileName, Format, Tracks.
 type CueSheet struct {
-	Format   string
-	FileName string
-	Tracks   []Track
+	AlbumPerformer string
+	Format         string
+	FileName       string
+	Tracks         []Track
 }
 
 // Parse reads the cue sheet data from the provided reader and returns a parsed CueSheet struct.
@@ -80,6 +82,8 @@ func (c *CueSheet) parseLine(line string) error {
 	switch command {
 	case "FILE":
 		err = c.parseFile(parameters)
+	case "PERFORMER":
+		err = c.parsePerformer(parameters)
 	case "TRACK":
 		err = c.parseTrack(parameters)
 	case "INDEX":
@@ -121,8 +125,15 @@ func (c *CueSheet) parseFile(parameters []string) error {
 	return nil
 }
 
+func (c *CueSheet) parsePerformer(parameters []string) error {
+	if err := parseString(strings.Join(parameters, " "), &c.AlbumPerformer); err != nil {
+		return fmt.Errorf("error parsing PERFORMER parameters")
+	}
+	return nil
+}
+
 func (c *CueSheet) parseTrack(parameters []string) error {
-	if len(parameters) != 2 {
+	if len(parameters) != trackParams {
 		return fmt.Errorf("TRACK: expected %d parameters, got %d", 2, len(parameters))
 	}
 	nr := parameters[0]
