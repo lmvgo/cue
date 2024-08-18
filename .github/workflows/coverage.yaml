@@ -46,7 +46,7 @@ jobs:
           files: README.md
 
       - name: Create pull request
-        if: ${{ steps.commit-changes.outputs.changes == 'true' }}
+        if: ${{ steps.verify-changed-files.outputs.changes == 'true' }}
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
