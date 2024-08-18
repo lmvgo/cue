@@ -42,21 +42,22 @@ type Track struct {
 // Required fields: FileName, Format, Tracks.
 type CueSheet struct {
 	AlbumPerformer string
+	AlbumTitle     string
 	Format         string
 	FileName       string
-	Tracks         []Track
+	Tracks         []*Track
 }
 
 // Parse reads the cue sheet data from the provided reader and returns a parsed CueSheet struct.
 func Parse(reader io.Reader) (*CueSheet, error) {
 	scanner := bufio.NewScanner(reader)
-	c := &CueSheet{Tracks: []Track{}}
+	c := &CueSheet{Tracks: []*Track{}}
 
 	var lineNr int
 	for scanner.Scan() {
 		line := strings.Trim(scanner.Text(), trimChars)
 		lineNr++
-		if line == "" {
+		if line == "" || line == "REM" {
 			continue
 		}
 		if err := c.parseLine(line); err != nil {
@@ -87,7 +88,9 @@ func (c *CueSheet) parseLine(line string) error {
 	case "TRACK":
 		err = c.parseTrack(parameters)
 	case "INDEX":
-		err = c.parseIndex(parameters)
+		err = c.parseIndex01(parameters)
+	case "TITLE":
+		err = c.parseTitle(parameters)
 	default:
 		return fmt.Errorf("unexpected command: %s", command)
 	}
@@ -147,7 +150,7 @@ func (c *CueSheet) parseTrack(parameters []string) error {
 	if err := parseString(typ, &track.Type); err != nil {
 		return fmt.Errorf("error parsing track type: %w", err)
 	}
-	c.Tracks = append(c.Tracks, track)
+	c.Tracks = append(c.Tracks, &track)
 	return nil
 }
 
@@ -166,7 +169,7 @@ func (c *CueSheet) isNextTrack(nr string) error {
 	return nil
 }
 
-func (c *CueSheet) parseIndex(parameters []string) error {
+func (c *CueSheet) parseIndex01(parameters []string) error {
 	if len(parameters) != indexParams {
 		return fmt.Errorf("INDEX: expected %d parameters, got %d", 2, len(parameters))
 	}
@@ -187,7 +190,14 @@ func (c *CueSheet) parseIndex(parameters []string) error {
 	}
 	duration := time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second
 	index := IndexPoint{Timestamp: duration, Frame: frames}
-	c.Tracks[len(c.Tracks)-1].Index01 = index
+	lastTrack := c.Tracks[len(c.Tracks)-1]
+	return assignValue(index, &lastTrack.Index01)
+}
+
+func (c *CueSheet) parseTitle(parameters []string) error {
+	if err := parseString(strings.Join(parameters, " "), &c.AlbumTitle); err != nil {
+		return fmt.Errorf("error parsing TITLE parameters")
+	}
 	return nil
 }
 
@@ -211,7 +221,7 @@ func (c *CueSheet) validate() error {
 func (c *CueSheet) validateTracks() error {
 	for i, track := range c.Tracks {
 		if track.Type == "" {
-			return errors.New("missing type")
+			return errors.New("missing track type")
 		}
 		if i < len(c.Tracks)-1 {
 			var (

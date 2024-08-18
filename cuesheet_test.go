@@ -27,7 +27,7 @@ type testCase struct {
 var minimalCueSheet = CueSheet{
 	FileName: "sample.flac",
 	Format:   "WAVE",
-	Tracks: []Track{
+	Tracks: []*Track{
 		{
 			Type: "AUDIO",
 		},
@@ -36,9 +36,10 @@ var minimalCueSheet = CueSheet{
 
 var allCueSheet = CueSheet{
 	AlbumPerformer: "Sample Album Artist",
+	AlbumTitle:     "Sample Album Title",
 	FileName:       "sample.flac",
 	Format:         "WAVE",
-	Tracks: []Track{
+	Tracks: []*Track{
 		{
 			Type: "AUDIO",
 			Index01: IndexPoint{
