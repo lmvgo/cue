@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	// trimChars contains the characters to be trimmed from a string.
-	// These are: space, double quote, tab, newline.
+	// trimChars contains the characters to be trimmed from a string,
+	// which are: space, double quote, tab, newline.
 	trimChars = " " + `"` + "\t" + "\n"
 
 	minLineFields = 2
