@@ -55,3 +55,9 @@ jobs:
             coverage: update badge
           add-paths: |
             README.md
+
+      - name: Delete child branch if coverage has no changes
+        if: ${{ steps.verify-changed-files.outputs.files_changed == 'false' }}
+        run: |
+          git push origin --delete update-coverage-badge-pr-${{ github.event.pull_request.number }}
+        continue-on-error: true
