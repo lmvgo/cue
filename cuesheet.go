@@ -19,12 +19,22 @@ const (
 
 	minLineFields = 2
 
-	fileParams  = 2
-	trackParams = 2
-	indexParams = 2
-
 	maxTracks = 99
 )
+
+type Command struct {
+	Name        string
+	ExactParams int
+	MinParams   int
+}
+
+var FileCommand = Command{Name: "FILE", ExactParams: 2}
+var PerformerCommand = Command{Name: "PERFORMER", MinParams: 1}
+var TitleCommand = Command{Name: "TITLE", MinParams: 1}
+var TrackCommand = Command{Name: "TRACK", ExactParams: 2}
+var TrackIndexCommand = Command{Name: "INDEX", ExactParams: 2}
+var RemCommand = Command{Name: "REM", MinParams: 1}
+var RemGenreCommand = Command{Name: "GENRE", MinParams: 1}
 
 type IndexPoint struct {
 	Frame     int
@@ -45,6 +55,7 @@ type CueSheet struct {
 	AlbumTitle     string
 	Format         string
 	FileName       string
+	Genre          string
 	Tracks         []*Track
 }
 
@@ -73,24 +84,22 @@ func Parse(reader io.Reader) (*CueSheet, error) {
 
 func (c *CueSheet) parseLine(line string) error {
 	fields := strings.Fields(line)
-	if len(fields) < minLineFields {
-		return fmt.Errorf("expected at least %d fields, got %d", minLineFields, len(fields))
-	}
-
 	var err error
 	command := fields[0]
 	parameters := fields[1:]
-	switch command {
-	case "FILE":
+	switch strings.ToUpper(command) {
+	case FileCommand.Name:
 		err = c.parseFile(parameters)
-	case "PERFORMER":
+	case PerformerCommand.Name:
 		err = c.parsePerformer(parameters)
-	case "TRACK":
+	case TrackCommand.Name:
 		err = c.parseTrack(parameters)
-	case "INDEX":
-		err = c.parseIndex01(parameters)
-	case "TITLE":
+	case TrackIndexCommand.Name:
+		err = c.parseTrackIndex01(parameters)
+	case TitleCommand.Name:
 		err = c.parseTitle(parameters)
+	case RemCommand.Name:
+		err = c.parseRem(parameters)
 	default:
 		return fmt.Errorf("unexpected command: %s", command)
 	}
@@ -115,8 +124,8 @@ func parseString(val string, field *string) error {
 }
 
 func (c *CueSheet) parseFile(parameters []string) error {
-	if len(parameters) != fileParams {
-		return fmt.Errorf("FILE: expected %d parameters, got %d", fileParams, len(parameters))
+	if err := FileCommand.validateParameters(len(parameters)); err != nil {
+		return fmt.Errorf("invalid FILE parameters: %w", err)
 	}
 	last := len(parameters) - 1
 	if err := parseString(parameters[last], &c.Format); err != nil {
@@ -129,15 +138,18 @@ func (c *CueSheet) parseFile(parameters []string) error {
 }
 
 func (c *CueSheet) parsePerformer(parameters []string) error {
+	if err := PerformerCommand.validateParameters(len(parameters)); err != nil {
+		return fmt.Errorf("invalid PERFORMER parameters: %w", err)
+	}
 	if err := parseString(strings.Join(parameters, " "), &c.AlbumPerformer); err != nil {
-		return fmt.Errorf("error parsing PERFORMER parameters")
+		return fmt.Errorf("error parsing PERFORMER parameters: %w", err)
 	}
 	return nil
 }
 
 func (c *CueSheet) parseTrack(parameters []string) error {
-	if len(parameters) != trackParams {
-		return fmt.Errorf("TRACK: expected %d parameters, got %d", 2, len(parameters))
+	if err := TrackCommand.validateParameters(len(parameters)); err != nil {
+		return fmt.Errorf("invalid TRACK parameters: %w", err)
 	}
 	nr := parameters[0]
 	typ := parameters[1]
@@ -169,9 +181,9 @@ func (c *CueSheet) isNextTrack(nr string) error {
 	return nil
 }
 
-func (c *CueSheet) parseIndex01(parameters []string) error {
-	if len(parameters) != indexParams {
-		return fmt.Errorf("INDEX: expected %d parameters, got %d", 2, len(parameters))
+func (c *CueSheet) parseTrackIndex01(parameters []string) error {
+	if err := TrackIndexCommand.validateParameters(len(parameters)); err != nil {
+		return fmt.Errorf("invalid TRACK INDEX parameters: %w", err)
 	}
 	nr := parameters[0]
 	indexPoint := parameters[1]
@@ -195,8 +207,47 @@ func (c *CueSheet) parseIndex01(parameters []string) error {
 }
 
 func (c *CueSheet) parseTitle(parameters []string) error {
+	if err := TitleCommand.validateParameters(len(parameters)); err != nil {
+		return fmt.Errorf("invalid TITLE parameters: %w", err)
+	}
 	if err := parseString(strings.Join(parameters, " "), &c.AlbumTitle); err != nil {
-		return fmt.Errorf("error parsing TITLE parameters")
+		return fmt.Errorf("error parsing TITLE parameters: %w", err)
+	}
+	return nil
+}
+
+func (c *CueSheet) parseRem(parameters []string) error {
+	var err error
+	command := parameters[0]
+	switch strings.ToUpper(command) {
+	case "GENRE":
+		err = c.parseGenre(parameters[1:])
+	default:
+		//TODO: handle REM comments
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("error parsing REM %q command: %w", command, err)
+	}
+	return nil
+}
+
+func (c *CueSheet) parseGenre(parameters []string) error {
+	if err := RemGenreCommand.validateParameters(len(parameters)); err != nil {
+		return fmt.Errorf("invalid REM GENRE parameters: %w", err)
+	}
+	if err := parseString(strings.Join(parameters, " "), &c.Genre); err != nil {
+		return fmt.Errorf("error parsing REM GENRE parameters: %w", err)
+	}
+	return nil
+}
+
+func (cmd *Command) validateParameters(parameters int) error {
+	if cmd.ExactParams > 0 && parameters != cmd.ExactParams {
+		return fmt.Errorf("expected %d parameters, got %d", cmd.ExactParams, parameters)
+	}
+	if cmd.MinParams > 0 && parameters < cmd.MinParams {
+		return fmt.Errorf("expected at least %d parameters, got %d", cmd.MinParams, parameters)
 	}
 	return nil
 }

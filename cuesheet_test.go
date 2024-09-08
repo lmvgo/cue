@@ -39,6 +39,7 @@ var allCueSheet = CueSheet{
 	AlbumTitle:     "Sample Album Title",
 	FileName:       "sample.flac",
 	Format:         "WAVE",
+	Genre:          "Heavy Metal",
 	Tracks: []*Track{
 		{
 			Type: "AUDIO",
@@ -76,13 +77,8 @@ func TestParseCueSheets(t *testing.T) {
 		},
 		{
 			name:        "UnexpectedCommand",
-			input:       open(t, path.Join("command", "unexpected.cue")),
+			input:       open(t, "unexpected.cue"),
 			expectedErr: errors.New("unexpected command: UNSUPPORTED"),
-		},
-		{
-			name:        "InsufficientLineFields",
-			input:       open(t, path.Join("command", "insufficient.cue")),
-			expectedErr: errors.New("expected at least 2 fields, got 1"),
 		},
 	}
 
@@ -157,7 +153,7 @@ func TestParseTrackCommand(t *testing.T) {
 	}
 }
 
-func TestParseIndex(t *testing.T) {
+func TestParseTrackIndexCommand(t *testing.T) {
 	tcs := []testCase{
 		{
 			name:        "OverlappingFrames",
@@ -193,6 +189,60 @@ func TestParseIndex(t *testing.T) {
 			name:        "ExcessiveIndexParams",
 			input:       open(t, path.Join("index", "excessive.cue")),
 			expectedErr: errors.New("expected 2 parameters, got 3"),
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, runTest(tc))
+	}
+}
+
+func TestParsePerformerCommand(t *testing.T) {
+	tcs := []testCase{
+		{
+			name:        "RepeatedPerformer",
+			input:       open(t, path.Join("performer", "repeated.cue")),
+			expectedErr: errors.New("field already set: Sample Album Artist"),
+		},
+		{
+			name:        "EmptyPerformer",
+			input:       open(t, path.Join("performer", "empty.cue")),
+			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, runTest(tc))
+	}
+}
+
+func TestParseTitleCommand(t *testing.T) {
+	tcs := []testCase{
+		{
+			name:        "RepeatedTitle",
+			input:       open(t, path.Join("title", "repeated.cue")),
+			expectedErr: errors.New("field already set: Sample Album Title"),
+		},
+		{
+			name:        "EmptyTitle",
+			input:       open(t, path.Join("title", "empty.cue")),
+			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, runTest(tc))
+	}
+}
+
+func TestParseRemGenreCommand(t *testing.T) {
+	tcs := []testCase{
+		{
+			name:        "RepeatedGenre",
+			input:       open(t, path.Join("genre", "repeated.cue")),
+			expectedErr: errors.New("field already set: Rock"),
+		},
+		{
+			name:        "EmptyGenre",
+			input:       open(t, path.Join("genre", "empty.cue")),
+			expectedErr: errors.New("expected at least 1 parameters, got 0"),
 		},
 	}
 	for _, tc := range tcs {

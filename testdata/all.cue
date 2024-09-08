@@ -1,4 +1,5 @@
 FILE "sample.flac" WAVE
+REM GENRE "Heavy Metal"
 PERFORMER "Sample Album Artist"
 TITLE "Sample Album Title"
 TRACK 01 AUDIO
