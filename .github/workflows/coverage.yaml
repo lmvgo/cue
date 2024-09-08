@@ -46,7 +46,7 @@ jobs:
           branch: ${{ github.event_name == 'pull_request' && 'update-coverage-badge-pr-' || 'update-coverage-badge' }}${{ github.event.pull_request.number || '-main' }}
           delete-branch: true
           base: ${{ github.event.pull_request.head.ref || 'main' }}
-          title: Update test coverage badge
+          title: 'Update coverage badge (PR #${{ github.event.pull_request.number }})'
           body: |
             This PR updates the test coverage badge in the README file.
             Parent PR: ${{ github.event.pull_request.html_url }}
