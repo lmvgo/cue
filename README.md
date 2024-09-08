@@ -1,5 +1,5 @@
 # Cue
-![Coverage](https://img.shields.io/badge/Coverage-94.2%25-brightgreen)
+![Coverage](https://img.shields.io/badge/Coverage-96.0%25-brightgreen)
 
 **Cue** is a Go library for parsing, generating, and manipulating Cue Sheet (`.cue`) files. Cue Sheet files are commonly
 used in conjunction with audio file formats like WAV, FLAC, and APE to describe the layout of tracks and other metadata.
