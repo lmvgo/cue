@@ -62,6 +62,7 @@ jobs:
         with:
           github-token: ${{ secrets.CREATE_PR_CLASSIC }}
           script: |
+            const { context } = require('@actions/github');
             await github.git.deleteRef({
               ...context.repo,
               ref: `heads/update-coverage-badge-pr-${{ github.event.pull_request.number }}`,
