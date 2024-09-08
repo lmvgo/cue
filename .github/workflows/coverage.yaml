@@ -1,16 +1,9 @@
 name: Code coverage
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - '**/*.md'
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - '**/*.md'
 
 jobs:
   test:
@@ -50,7 +43,7 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.CREATE_PR_CLASSIC }}
-          branch: ${{ github.event_name == 'pull_request' && 'update-coverage-badge-pr-' || 'update-coverage-badge' }}${{ github.event.pull_request.number || '-main' }}
+          branch: 'update-coverage-badge-pr-' ${{ github.event.pull_request.number }}
           delete-branch: true
           base: ${{ github.event.pull_request.head.ref || 'main' }}
           title: Update test coverage badge
