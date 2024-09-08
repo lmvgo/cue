@@ -60,7 +60,7 @@ jobs:
         if: ${{ steps.verify-changed-files.outputs.files_changed == 'false' }}
         uses: actions/github-script@v7
         with:
-          token: ${{ secrets.CREATE_PR_CLASSIC }}
+          github-token: ${{ secrets.CREATE_PR_CLASSIC }}
           script: |
             await github.git.deleteRef({
               ...context.repo,
