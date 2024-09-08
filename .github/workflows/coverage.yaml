@@ -50,13 +50,12 @@ jobs:
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.CREATE_PR_CLASSIC }}
-          branch: 'update-coverage-badge-pr-' ${{ github.event.pull_request.number }}
+          branch: ${{ github.event_name == 'pull_request' && 'update-coverage-badge-pr-' || 'update-coverage-badge' }}${{ github.event.pull_request.number || '-main' }}
           delete-branch: true
-          base: ${{ github.event.pull_request.head.ref }}
-          title: |
-            Update test coverage badge for PR #${{ github.event.pull_request.number }}
+          base: ${{ github.event.pull_request.head.ref || 'main' }}
+          title: Update test coverage badge
           body: |
-            Updates the test coverage badge in the README file from original PR #${{ github.event.pull_request.number }}.
+            This PR updates the test coverage badge in the README file.
             Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
           commit-message: |
             coverage: update badge
