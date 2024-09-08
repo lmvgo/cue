@@ -58,6 +58,8 @@ jobs:
 
       - name: Delete child branch if coverage has no changes
         if: ${{ steps.verify-changed-files.outputs.files_changed == 'false' }}
+        with:
+          token: ${{ secrets.CREATE_PR_CLASSIC }}
         run: |
           git push origin --delete update-coverage-badge-pr-${{ github.event.pull_request.number }}
         continue-on-error: true
