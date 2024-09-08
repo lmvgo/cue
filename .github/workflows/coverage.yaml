@@ -52,7 +52,7 @@ jobs:
           token: ${{ secrets.CREATE_PR_CLASSIC }}
           branch: ${{ github.event_name == 'pull_request' && 'update-coverage-badge-pr-' || 'update-coverage-badge' }}${{ github.event.pull_request.number || '-main' }}
           delete-branch: true
-          base: ${{ github.event.pull_request.base.ref || 'main' }}
+          base: ${{ github.event.pull_request.head.ref || 'main' }}
           title: Update test coverage badge
           body: |
             This PR updates the test coverage badge in the README file.
