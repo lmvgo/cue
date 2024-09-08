@@ -49,6 +49,7 @@ jobs:
           title: Update test coverage badge
           body: |
             This PR updates the test coverage badge in the README file.
+            Parent PR: ${{ github.event.pull_request.html_url }}
             Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
           commit-message: |
             coverage: update badge
