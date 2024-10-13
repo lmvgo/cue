@@ -17,8 +17,6 @@ const (
 	// which are: space, double quote, tab, newline.
 	trimChars = " " + `"` + "\t" + "\n"
 
-	minLineFields = 2
-
 	maxTracks = 99
 )
 
@@ -44,6 +42,7 @@ type IndexPoint struct {
 // Track represents a single track in a cue sheet file.
 // Required fields: Index01, Type.
 type Track struct {
+	Title   string
 	Type    string
 	Index01 IndexPoint
 }
@@ -210,8 +209,18 @@ func (c *CueSheet) parseTitle(parameters []string) error {
 	if err := TitleCommand.validateParameters(len(parameters)); err != nil {
 		return fmt.Errorf("invalid TITLE parameters: %w", err)
 	}
-	if err := parseString(strings.Join(parameters, " "), &c.AlbumTitle); err != nil {
-		return fmt.Errorf("error parsing TITLE parameters: %w", err)
+	nrTracks := len(c.Tracks)
+	if nrTracks == 0 {
+		// no tracks yet - try setting album title
+		if err := parseString(strings.Join(parameters, " "), &c.AlbumTitle); err != nil {
+			return fmt.Errorf("error parsing album TITLE: %w", err)
+		}
+		return nil
+	}
+	currentTrack := c.Tracks[nrTracks-1]
+	if err := parseString(strings.Join(parameters, " "), &currentTrack.Title); err != nil {
+		// current track title is already set
+		return fmt.Errorf("error parsing track %d TITLE: %w", nrTracks-1, err)
 	}
 	return nil
 }

@@ -42,6 +42,52 @@ var allCueSheet = CueSheet{
 	Genre:          "Heavy Metal",
 	Tracks: []*Track{
 		{
+			Title: "Track 1",
+			Type:  "AUDIO",
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1) * time.Second,
+			},
+		},
+		{
+			Title: "Track 2",
+			Type:  "AUDIO",
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1) * time.Minute,
+			},
+		},
+	},
+}
+
+var cueSheetWithTrackTitleAndNoAlbumTitle = CueSheet{
+	FileName: "sample.flac",
+	Format:   "WAVE",
+	Tracks: []*Track{
+		{
+			Title: "Track 1",
+			Type:  "AUDIO",
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1) * time.Second,
+			},
+		},
+		{
+			Title: "Track 2",
+			Type:  "AUDIO",
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1) * time.Minute,
+			},
+		},
+	},
+}
+
+var cueSheetWithInterleavedTrackTitles = CueSheet{
+	FileName: "sample.flac",
+	Format:   "WAVE",
+	Tracks: []*Track{
+		{
 			Type: "AUDIO",
 			Index01: IndexPoint{
 				Frame:     0,
@@ -49,7 +95,8 @@ var allCueSheet = CueSheet{
 			},
 		},
 		{
-			Type: "AUDIO",
+			Title: "Track 2",
+			Type:  "AUDIO",
 			Index01: IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Minute,
@@ -217,14 +264,39 @@ func TestParsePerformerCommand(t *testing.T) {
 func TestParseTitleCommand(t *testing.T) {
 	tcs := []testCase{
 		{
-			name:        "RepeatedTitle",
+			name:        "RepeatedAlbumTitle",
 			input:       open(t, path.Join("title", "repeated.cue")),
 			expectedErr: errors.New("field already set: Sample Album Title"),
 		},
 		{
-			name:        "EmptyTitle",
+			name:        "EmptyAlbumTitle",
 			input:       open(t, path.Join("title", "empty.cue")),
 			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+		},
+		{
+			name:        "RepeatedTrackTitleWithoutAlbumTitle",
+			input:       open(t, path.Join("track", "title", "repeated_wo_album.cue")),
+			expectedErr: errors.New("field already set: Sample track title"),
+		},
+		{
+			name:        "RepeatedTrackTitleWithAlbumTitle",
+			input:       open(t, path.Join("track", "title", "repeated_w_album.cue")),
+			expectedErr: errors.New("field already set: Sample track title"),
+		},
+		{
+			name:        "EmptyTrackTitle",
+			input:       open(t, path.Join("track", "title", "empty.cue")),
+			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+		},
+		{
+			name:     "TrackTitleWithoutAlbumTitle",
+			input:    open(t, path.Join("track", "title", "without_album.cue")),
+			expected: cueSheetWithTrackTitleAndNoAlbumTitle,
+		},
+		{
+			name:     "InterleavedTrackTitles",
+			input:    open(t, path.Join("track", "title", "interleaved.cue")),
+			expected: cueSheetWithInterleavedTrackTitles,
 		},
 	}
 	for _, tc := range tcs {
