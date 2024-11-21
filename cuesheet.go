@@ -33,6 +33,7 @@ var TrackCommand = Command{Name: "TRACK", ExactParams: 2}
 var TrackIndexCommand = Command{Name: "INDEX", ExactParams: 2}
 var RemCommand = Command{Name: "REM", MinParams: 1}
 var RemGenreCommand = Command{Name: "GENRE", MinParams: 1}
+var RemDateCommand = Command{Name: "DATE", MinParams: 1}
 
 type IndexPoint struct {
 	Frame     int
@@ -52,6 +53,7 @@ type Track struct {
 type CueSheet struct {
 	AlbumPerformer string
 	AlbumTitle     string
+	Date           string
 	Format         string
 	FileName       string
 	Genre          string
@@ -231,12 +233,24 @@ func (c *CueSheet) parseRem(parameters []string) error {
 	switch strings.ToUpper(command) {
 	case "GENRE":
 		err = c.parseGenre(parameters[1:])
+	case "DATE":
+		err = c.parseDate(parameters[1:])
 	default:
 		//TODO: handle REM comments
 		return nil
 	}
 	if err != nil {
 		return fmt.Errorf("error parsing REM %q command: %w", command, err)
+	}
+	return nil
+}
+
+func (c *CueSheet) parseDate(parameters []string) error {
+	if err := RemDateCommand.validateParameters(len(parameters)); err != nil {
+		return fmt.Errorf("invalid REM DATE parameters: %w", err)
+	}
+	if err := parseString(strings.Join(parameters, " "), &c.Date); err != nil {
+		return fmt.Errorf("error parsing REM DATE parameters: %w", err)
 	}
 	return nil
 }

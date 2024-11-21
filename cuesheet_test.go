@@ -37,6 +37,7 @@ var minimalCueSheet = CueSheet{
 var allCueSheet = CueSheet{
 	AlbumPerformer: "Sample Album Artist",
 	AlbumTitle:     "Sample Album Title",
+	Date:           "1989",
 	FileName:       "sample.flac",
 	Format:         "WAVE",
 	Genre:          "Heavy Metal",
@@ -314,6 +315,24 @@ func TestParseRemGenreCommand(t *testing.T) {
 		{
 			name:        "EmptyGenre",
 			input:       open(t, path.Join("genre", "empty.cue")),
+			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, runTest(tc))
+	}
+}
+
+func TestParseRemDateCommand(t *testing.T) {
+	tcs := []testCase{
+		{
+			name:        "RepeatedDate",
+			input:       open(t, path.Join("date", "repeated.cue")),
+			expectedErr: errors.New("field already set: 1974-01"),
+		},
+		{
+			name:        "EmptyDate",
+			input:       open(t, path.Join("date", "empty.cue")),
 			expectedErr: errors.New("expected at least 1 parameters, got 0"),
 		},
 	}
