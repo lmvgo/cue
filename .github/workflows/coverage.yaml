@@ -55,3 +55,16 @@ jobs:
             coverage: update badge
           add-paths: |
             README.md
+
+      - name: Delete branch
+        if: ${{ steps.verify-changed-files.outputs.files_changed == 'false' }}
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.CREATE_PR_CLASSIC }}
+          script: |
+              const { getOctokit } = require('@actions/github');
+              const octokit = getOctokit('${{ secrets.CREATE_PR_CLASSIC }}');
+              await octokit.rest.git.deleteRef({
+              ...context.repo,
+              ref: `heads/update-coverage-badge-pr-${{ github.event.pull_request.number }}`,
+            });
