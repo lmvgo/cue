@@ -13,8 +13,7 @@ import (
 )
 
 const (
-	// trimChars contains the characters to be trimmed from a string,
-	// which are: space, double quote, tab, newline.
+	// trimChars are the characters to be trimmed from a string
 	trimChars = " " + `"` + "\t" + "\n"
 
 	maxTracks = 99
@@ -30,7 +29,7 @@ var FileCommand = Command{Name: "FILE", ExactParams: 2}
 var PerformerCommand = Command{Name: "PERFORMER", MinParams: 1}
 var TitleCommand = Command{Name: "TITLE", MinParams: 1}
 var TrackCommand = Command{Name: "TRACK", ExactParams: 2}
-var TrackIndexCommand = Command{Name: "INDEX", ExactParams: 2}
+var IndexCommand = Command{Name: "INDEX", ExactParams: 2}
 var RemCommand = Command{Name: "REM", MinParams: 1}
 var RemGenreCommand = Command{Name: "GENRE", MinParams: 1}
 
@@ -44,7 +43,8 @@ type IndexPoint struct {
 type Track struct {
 	Title   string
 	Type    string
-	Index01 IndexPoint
+	Index00 *IndexPoint
+	Index01 *IndexPoint
 }
 
 // CueSheet represents the contents of a cue sheet file.
@@ -68,6 +68,7 @@ func Parse(reader io.Reader) (*CueSheet, error) {
 		line := strings.Trim(scanner.Text(), trimChars)
 		lineNr++
 		if line == "" || line == "REM" {
+			// skip empty lines and empty REM commands
 			continue
 		}
 		if err := c.parseLine(line); err != nil {
@@ -93,8 +94,8 @@ func (c *CueSheet) parseLine(line string) error {
 		err = c.parsePerformer(parameters)
 	case TrackCommand.Name:
 		err = c.parseTrack(parameters)
-	case TrackIndexCommand.Name:
-		err = c.parseTrackIndex01(parameters)
+	case IndexCommand.Name:
+		err = c.parseIndex(parameters)
 	case TitleCommand.Name:
 		err = c.parseTitle(parameters)
 	case RemCommand.Name:
@@ -108,6 +109,7 @@ func (c *CueSheet) parseLine(line string) error {
 	return nil
 }
 
+// assignValue assigns a value to a field if it is not already set.
 func assignValue[T comparable](val T, field *T) error {
 	zero := reflect.Zero(reflect.TypeOf(*field)).Interface()
 	if *field != zero {
@@ -123,7 +125,7 @@ func parseString(val string, field *string) error {
 }
 
 func (c *CueSheet) parseFile(parameters []string) error {
-	if err := FileCommand.validateParameters(len(parameters)); err != nil {
+	if err := FileCommand.validateNrParameters(len(parameters)); err != nil {
 		return fmt.Errorf("invalid FILE parameters: %w", err)
 	}
 	last := len(parameters) - 1
@@ -137,7 +139,7 @@ func (c *CueSheet) parseFile(parameters []string) error {
 }
 
 func (c *CueSheet) parsePerformer(parameters []string) error {
-	if err := PerformerCommand.validateParameters(len(parameters)); err != nil {
+	if err := PerformerCommand.validateNrParameters(len(parameters)); err != nil {
 		return fmt.Errorf("invalid PERFORMER parameters: %w", err)
 	}
 	if err := parseString(strings.Join(parameters, " "), &c.AlbumPerformer); err != nil {
@@ -147,7 +149,7 @@ func (c *CueSheet) parsePerformer(parameters []string) error {
 }
 
 func (c *CueSheet) parseTrack(parameters []string) error {
-	if err := TrackCommand.validateParameters(len(parameters)); err != nil {
+	if err := TrackCommand.validateNrParameters(len(parameters)); err != nil {
 		return fmt.Errorf("invalid TRACK parameters: %w", err)
 	}
 	nr := parameters[0]
@@ -180,33 +182,48 @@ func (c *CueSheet) isNextTrack(nr string) error {
 	return nil
 }
 
-func (c *CueSheet) parseTrackIndex01(parameters []string) error {
-	if err := TrackIndexCommand.validateParameters(len(parameters)); err != nil {
+func (c *CueSheet) parseIndex(parameters []string) error {
+	if err := IndexCommand.validateNrParameters(len(parameters)); err != nil {
 		return fmt.Errorf("invalid TRACK INDEX parameters: %w", err)
 	}
-	nr := parameters[0]
-	indexPoint := parameters[1]
-
-	indexNr, err := strconv.Atoi(nr)
+	indexNrStr := parameters[0]
+	indexPointStr := parameters[1]
+	indexNr, err := strconv.Atoi(indexNrStr)
 	if err != nil {
 		return fmt.Errorf("failed to parse index number: %w", err)
 	}
-	if indexNr != 1 {
-		return fmt.Errorf("expected index number 1, got %d", indexNr)
+	idxToUpdate, err := c.getIndexToUpdate(indexNr)
+	if err != nil {
+		return fmt.Errorf("failed to get index %d to update: %w", indexNr, err)
 	}
+	err = idxToUpdate.update(indexPointStr)
+	if err != nil {
+		return fmt.Errorf("error updating index point: %w", err)
+	}
+	return nil
+}
 
-	var minutes, seconds, frames int
-	if _, err = fmt.Sscanf(indexPoint, "%2d:%2d:%2d", &minutes, &seconds, &frames); err != nil {
-		return fmt.Errorf("error parsing timestamp and frame: %w", err)
-	}
-	duration := time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second
-	index := IndexPoint{Timestamp: duration, Frame: frames}
+func (c *CueSheet) getIndexToUpdate(indexNr int) (*IndexPoint, error) {
 	lastTrack := c.Tracks[len(c.Tracks)-1]
-	return assignValue(index, &lastTrack.Index01)
+	newIndex := &IndexPoint{}
+	if indexNr == 0 {
+		if lastTrack.Index00 != nil {
+			return nil, fmt.Errorf("track %d already has INDEX 00", len(c.Tracks)-1)
+		}
+		lastTrack.Index00 = newIndex
+	} else if indexNr == 1 {
+		if lastTrack.Index01 != nil {
+			return nil, fmt.Errorf("track %d already has INDEX 01", len(c.Tracks)-1)
+		}
+		lastTrack.Index01 = newIndex
+	} else {
+		return nil, fmt.Errorf("expected index number 0 or 1, got %d", indexNr)
+	}
+	return newIndex, nil
 }
 
 func (c *CueSheet) parseTitle(parameters []string) error {
-	if err := TitleCommand.validateParameters(len(parameters)); err != nil {
+	if err := TitleCommand.validateNrParameters(len(parameters)); err != nil {
 		return fmt.Errorf("invalid TITLE parameters: %w", err)
 	}
 	nrTracks := len(c.Tracks)
@@ -242,7 +259,7 @@ func (c *CueSheet) parseRem(parameters []string) error {
 }
 
 func (c *CueSheet) parseGenre(parameters []string) error {
-	if err := RemGenreCommand.validateParameters(len(parameters)); err != nil {
+	if err := RemGenreCommand.validateNrParameters(len(parameters)); err != nil {
 		return fmt.Errorf("invalid REM GENRE parameters: %w", err)
 	}
 	if err := parseString(strings.Join(parameters, " "), &c.Genre); err != nil {
@@ -251,7 +268,7 @@ func (c *CueSheet) parseGenre(parameters []string) error {
 	return nil
 }
 
-func (cmd *Command) validateParameters(parameters int) error {
+func (cmd *Command) validateNrParameters(parameters int) error {
 	if cmd.ExactParams > 0 && parameters != cmd.ExactParams {
 		return fmt.Errorf("expected %d parameters, got %d", cmd.ExactParams, parameters)
 	}
@@ -261,7 +278,8 @@ func (cmd *Command) validateParameters(parameters int) error {
 	return nil
 }
 
-// validate checks if the cue sheet has FILE and at least one TRACK command with INDEX 01.
+// validate checks if the cue sheet has FILE with FORMAT and at least one TRACK command with INDEX 01.
+// It also ensures that index points do not overlap.
 func (c *CueSheet) validate() error {
 	if c.FileName == "" {
 		return errors.New("missing file name")
@@ -279,23 +297,46 @@ func (c *CueSheet) validate() error {
 }
 
 func (c *CueSheet) validateTracks() error {
+	var indexPoints []*IndexPoint
 	for i, track := range c.Tracks {
 		if track.Type == "" {
-			return errors.New("missing track type")
+			return fmt.Errorf("missing track TYPE in track %d", i+1)
 		}
-		if i < len(c.Tracks)-1 {
-			var (
-				timestamp = track.Index01.Timestamp
-				frame     = track.Index01.Frame
-
-				nextTrack     = c.Tracks[i+1]
-				nextTimestamp = nextTrack.Index01.Timestamp
-				nextFrame     = nextTrack.Index01.Frame
-			)
-			if timestamp > nextTimestamp || (timestamp == nextTimestamp && frame >= nextFrame) {
-				return fmt.Errorf("overlapping indices in tracks %d and %d", i+1, i+2)
-			}
+		if track.Index01 == nil {
+			return fmt.Errorf("missing INDEX 01 in track %d", i+1)
+		}
+		if track.Index00 != nil {
+			indexPoints = append(indexPoints, track.Index00)
+		}
+		indexPoints = append(indexPoints, track.Index01)
+	}
+	for i := range len(indexPoints) - 2 {
+		currIdx := indexPoints[i]
+		nextIndex := indexPoints[i+1]
+		if nextIndex.before(currIdx) {
+			return fmt.Errorf("overlapping index points %v and %v", currIdx, nextIndex)
 		}
 	}
+	return nil
+}
+
+func (idx *IndexPoint) before(indexPoint *IndexPoint) bool {
+	if idx.Timestamp < indexPoint.Timestamp {
+		return true
+	}
+	if idx.Timestamp == indexPoint.Timestamp {
+		return idx.Frame < indexPoint.Frame
+	}
+	return false
+}
+
+func (idx *IndexPoint) update(indexPoint string) error {
+	var minutes, seconds, frames int
+	if _, err := fmt.Sscanf(indexPoint, "%2d:%2d:%2d", &minutes, &seconds, &frames); err != nil {
+		return fmt.Errorf("error parsing timestamp and frame: %w", err)
+	}
+	duration := time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second
+	index := IndexPoint{Timestamp: duration, Frame: frames}
+	*idx = index
 	return nil
 }

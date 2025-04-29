@@ -29,7 +29,8 @@ var minimalCueSheet = CueSheet{
 	Format:   "WAVE",
 	Tracks: []*Track{
 		{
-			Type: "AUDIO",
+			Type:    "AUDIO",
+			Index01: &IndexPoint{},
 		},
 	},
 }
@@ -44,7 +45,7 @@ var allCueSheet = CueSheet{
 		{
 			Title: "Track 1",
 			Type:  "AUDIO",
-			Index01: IndexPoint{
+			Index01: &IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Second,
 			},
@@ -52,7 +53,7 @@ var allCueSheet = CueSheet{
 		{
 			Title: "Track 2",
 			Type:  "AUDIO",
-			Index01: IndexPoint{
+			Index01: &IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Minute,
 			},
@@ -67,7 +68,7 @@ var cueSheetWithTrackTitleAndNoAlbumTitle = CueSheet{
 		{
 			Title: "Track 1",
 			Type:  "AUDIO",
-			Index01: IndexPoint{
+			Index01: &IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Second,
 			},
@@ -75,7 +76,7 @@ var cueSheetWithTrackTitleAndNoAlbumTitle = CueSheet{
 		{
 			Title: "Track 2",
 			Type:  "AUDIO",
-			Index01: IndexPoint{
+			Index01: &IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Minute,
 			},
@@ -89,7 +90,7 @@ var cueSheetWithInterleavedTrackTitles = CueSheet{
 	Tracks: []*Track{
 		{
 			Type: "AUDIO",
-			Index01: IndexPoint{
+			Index01: &IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Second,
 			},
@@ -97,7 +98,7 @@ var cueSheetWithInterleavedTrackTitles = CueSheet{
 		{
 			Title: "Track 2",
 			Type:  "AUDIO",
-			Index01: IndexPoint{
+			Index01: &IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Minute,
 			},
@@ -204,12 +205,12 @@ func TestParseTrackIndexCommand(t *testing.T) {
 	tcs := []testCase{
 		{
 			name:        "OverlappingFrames",
-			input:       open(t, path.Join("index", "overlapping_frame.cue")),
+			input:       open(t, path.Join("index", "overlapping_frame_01.cue")),
 			expectedErr: errors.New("overlapping indices in tracks 1 and 2"),
 		},
 		{
 			name:        "OverlappingTimestamps",
-			input:       open(t, path.Join("index", "overlapping_timestamp.cue")),
+			input:       open(t, path.Join("index", "overlapping_timestamp_01.cue")),
 			expectedErr: errors.New("overlapping indices in tracks 1 and 2"),
 		},
 		{
@@ -332,7 +333,7 @@ func runTest(tc testCase) func(t *testing.T) {
 			return
 		}
 		require.NoError(t, err)
-		require.Equal(t, tc.expected, *cueSheet)
+		require.EqualValues(t, tc.expected, *cueSheet)
 	}
 }
 

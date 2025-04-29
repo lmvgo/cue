@@ -1,0 +1,4 @@
+FILE "sample.flac" WAVE
+TRACK 01 AUDIO
+    INDEX 00 00:10:00
+    INDEX 01 00:00:00
