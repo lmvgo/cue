@@ -13,11 +13,8 @@ import (
 )
 
 const (
-	// trimChars contains the characters to be trimmed from a string,
-	// which are: space, double quote, tab, newline.
+	// trimChars contains the characters to be trimmed from a string
 	trimChars = " " + `"` + "\t" + "\n"
-
-	maxTracks = 99
 )
 
 type Command struct {
@@ -172,12 +169,12 @@ func (c *CueSheet) isNextTrack(nr string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse track number: %w", err)
 	}
+	if len(nr) != 2 {
+		return fmt.Errorf("expected 2 digits, got %d", len(nr))
+	}
 	nextTrackNr := len(c.Tracks) + 1
 	if trackNr != nextTrackNr {
 		return fmt.Errorf("expected track number %d, got %d", nextTrackNr, trackNr)
-	}
-	if trackNr > maxTracks {
-		return fmt.Errorf("cannot have more than %d tracks", maxTracks)
 	}
 	return nil
 }
