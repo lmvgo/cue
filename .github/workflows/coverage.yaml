@@ -26,32 +26,32 @@ jobs:
           go test -race -v ./... -covermode=atomic -coverprofile coverage.out -coverpkg ./...
           go tool cover -func coverage.out -o coverage.out
 
-      - name: Go coverage badge
-        uses: tj-actions/coverage-badge-go@v2
-        with:
-          green: 80
-          filename: coverage.out
+#      - name: Go coverage badge
+#        uses: tj-actions/coverage-badge-go@v2
+#        with:
+#          green: 80
+#          filename: coverage.out
+#
+#      - name: Verify changed files
+#        uses: tj-actions/verify-changed-files@v17
+#        id: verify-changed-files
+#        with:
+#          files: README.md
 
-      - name: Verify changed files
-        uses: tj-actions/verify-changed-files@v17
-        id: verify-changed-files
-        with:
-          files: README.md
-
-      - name: Create pull request
-        if: ${{ steps.verify-changed-files.outputs.files_changed == 'true' }}
-        uses: peter-evans/create-pull-request@v6
-        with:
-          token: ${{ secrets.CREATE_PR_CLASSIC }}
-          branch: 'update-coverage-badge-pr-${{ github.event.pull_request.number }}'
-          delete-branch: true
-          base: ${{ github.event.pull_request.head.ref }}
-          title: 'Update coverage badge (PR #${{ github.event.pull_request.number }})'
-          body: |
-            This PR updates the test coverage badge in the README file.
-            Parent PR: ${{ github.event.pull_request.html_url }}
-            Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
-          commit-message: |
-            coverage: update badge
-          add-paths: |
-            README.md
+#      - name: Create pull request
+#        if: ${{ steps.verify-changed-files.outputs.files_changed == 'true' }}
+#        uses: peter-evans/create-pull-request@v6
+#        with:
+#          token: ${{ secrets.CREATE_PR_CLASSIC }}
+#          branch: 'update-coverage-badge-pr-${{ github.event.pull_request.number }}'
+#          delete-branch: true
+#          base: ${{ github.event.pull_request.head.ref }}
+#          title: 'Update coverage badge (PR #${{ github.event.pull_request.number }})'
+#          body: |
+#            This PR updates the test coverage badge in the README file.
+#            Parent PR: ${{ github.event.pull_request.html_url }}
+#            Automated changes by [create-pull-request](https://github.com/peter-evans/create-pull-request) GitHub action.
+#          commit-message: |
+#            coverage: update badge
+#          add-paths: |
+#            README.md
