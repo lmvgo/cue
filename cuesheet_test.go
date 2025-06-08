@@ -2,12 +2,10 @@ package cuesheetgo
 
 import (
 	"embed"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
 	"path"
-	"strings"
 	"testing"
 	"time"
 
@@ -21,7 +19,7 @@ type testCase struct {
 	name        string
 	input       io.Reader
 	expected    CueSheet
-	expectedErr error
+	expectedErr string
 }
 
 var minimalCueSheet = CueSheet{
@@ -121,12 +119,12 @@ func TestParseCueSheets(t *testing.T) {
 		{
 			name:        "EmptyCueSheet",
 			input:       open(t, "empty.cue"),
-			expectedErr: errors.New("missing file name"),
+			expectedErr: "missing file name",
 		},
 		{
 			name:        "UnexpectedCommand",
 			input:       open(t, "unexpected.cue"),
-			expectedErr: errors.New("unexpected command: UNSUPPORTED"),
+			expectedErr: "unexpected command: UNSUPPORTED",
 		},
 	}
 
@@ -140,22 +138,22 @@ func TestParseFileCommand(t *testing.T) {
 		{
 			name:        "RepeatedFileCommand",
 			input:       open(t, path.Join("file", "repeated.cue")),
-			expectedErr: errors.New("field already set: WAVE"),
+			expectedErr: "field already set: WAVE",
 		},
 		{
 			name:        "InsufficientFileParams",
 			input:       open(t, path.Join("file", "insufficient.cue")),
-			expectedErr: errors.New("expected 2 parameters, got 1"),
+			expectedErr: "expected 2 parameters, got 1",
 		},
 		{
 			name:        "ExcessiveFileParams",
 			input:       open(t, path.Join("file", "excessive.cue")),
-			expectedErr: errors.New("expected 2 parameters, got 3"),
+			expectedErr: "expected 2 parameters, got 3",
 		},
 		{
 			name:        "EmptyFileName",
 			input:       open(t, path.Join("file", "empty_name.cue")),
-			expectedErr: errors.New("missing file name"),
+			expectedErr: "missing file name",
 		},
 	}
 	for _, tc := range tcs {
@@ -168,32 +166,52 @@ func TestParseTrackCommand(t *testing.T) {
 		{
 			name:        "InsufficientTrackParams",
 			input:       open(t, path.Join("track", "insufficient.cue")),
-			expectedErr: errors.New("expected 2 parameters, got 1"),
+			expectedErr: "expected 2 parameters, got 1",
 		},
 		{
 			name:        "ExcessiveTrackParams",
 			input:       open(t, path.Join("track", "excessive.cue")),
-			expectedErr: errors.New("expected 2 parameters, got 3"),
+			expectedErr: "expected 2 parameters, got 3",
 		},
 		{
 			name:        "MissingTracks",
 			input:       open(t, path.Join("track", "missing.cue")),
-			expectedErr: errors.New("missing tracks"),
+			expectedErr: "missing tracks",
 		},
 		{
 			name:        "UnorderedTracks",
 			input:       open(t, path.Join("track", "unordered.cue")),
-			expectedErr: errors.New("expected track number 1, got 2"),
+			expectedErr: "expected track number 1, got 2",
+		},
+		{
+			name:        "RepeatedTracks",
+			input:       open(t, path.Join("track", "repeated.cue")),
+			expectedErr: "expected track number 2, got 1",
 		},
 		{
 			name:        "NonNumericTrackNumber",
 			input:       open(t, path.Join("track", "non_numeric.cue")),
-			expectedErr: errors.New("failed to parse track number"),
+			expectedErr: "failed to parse track number",
 		},
 		{
-			name:        "ExceedsMaxTracks",
-			input:       strings.NewReader(generateExceedsMaxTracks()),
-			expectedErr: errors.New("cannot have more than 99 tracks"),
+			name:        "ZeroTrackNumber",
+			input:       open(t, path.Join("track", "zero.cue")),
+			expectedErr: "expected track number 1, got 0",
+		},
+		{
+			name:        "NegativeTrackNumber",
+			input:       open(t, path.Join("track", "negative.cue")),
+			expectedErr: "expected track number 1, got -1",
+		},
+		{
+			name:        "SingleDigit",
+			input:       open(t, path.Join("track", "single_digit.cue")),
+			expectedErr: "expected 2 digits, got 1",
+		},
+		{
+			name:        "MoreThanTwoDigits",
+			input:       open(t, path.Join("track", "more_than_two_digits.cue")),
+			expectedErr: "expected 2 digits, got 3",
 		},
 	}
 	for _, tc := range tcs {
@@ -206,37 +224,37 @@ func TestParseTrackIndexCommand(t *testing.T) {
 		{
 			name:        "OverlappingFrames",
 			input:       open(t, path.Join("index", "overlapping_frame.cue")),
-			expectedErr: errors.New("overlapping indices in tracks 1 and 2"),
+			expectedErr: "overlapping indices in tracks 1 and 2",
 		},
 		{
 			name:        "OverlappingTimestamps",
 			input:       open(t, path.Join("index", "overlapping_timestamp.cue")),
-			expectedErr: errors.New("overlapping indices in tracks 1 and 2"),
+			expectedErr: "overlapping indices in tracks 1 and 2",
 		},
 		{
 			name:        "NonNumericIndexNumber",
 			input:       open(t, path.Join("index", "non_numeric.cue")),
-			expectedErr: errors.New("failed to parse index number"),
+			expectedErr: "failed to parse index number",
 		},
 		{
 			name:        "InvalidTimeFormat",
 			input:       open(t, path.Join("index", "format.cue")),
-			expectedErr: errors.New("error parsing timestamp and frame"),
+			expectedErr: "error parsing timestamp and frame",
 		},
 		{
 			name:        "UnorderedIndex",
 			input:       open(t, path.Join("index", "unordered.cue")),
-			expectedErr: errors.New("expected index number 1, got 2"),
+			expectedErr: "expected index number 1, got 2",
 		},
 		{
 			name:        "InsufficientIndexParams",
 			input:       open(t, path.Join("index", "insufficient.cue")),
-			expectedErr: errors.New("expected 2 parameters, got 1"),
+			expectedErr: "expected 2 parameters, got 1",
 		},
 		{
 			name:        "ExcessiveIndexParams",
 			input:       open(t, path.Join("index", "excessive.cue")),
-			expectedErr: errors.New("expected 2 parameters, got 3"),
+			expectedErr: "expected 2 parameters, got 3",
 		},
 	}
 	for _, tc := range tcs {
@@ -249,12 +267,12 @@ func TestParsePerformerCommand(t *testing.T) {
 		{
 			name:        "RepeatedPerformer",
 			input:       open(t, path.Join("performer", "repeated.cue")),
-			expectedErr: errors.New("field already set: Sample Album Artist"),
+			expectedErr: "field already set: Sample Album Artist",
 		},
 		{
 			name:        "EmptyPerformer",
 			input:       open(t, path.Join("performer", "empty.cue")),
-			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+			expectedErr: "expected at least 1 parameters, got 0",
 		},
 	}
 	for _, tc := range tcs {
@@ -267,27 +285,27 @@ func TestParseTitleCommand(t *testing.T) {
 		{
 			name:        "RepeatedAlbumTitle",
 			input:       open(t, path.Join("title", "repeated.cue")),
-			expectedErr: errors.New("field already set: Sample Album Title"),
+			expectedErr: "field already set: Sample Album Title",
 		},
 		{
 			name:        "EmptyAlbumTitle",
 			input:       open(t, path.Join("title", "empty.cue")),
-			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+			expectedErr: "expected at least 1 parameters, got 0",
 		},
 		{
 			name:        "RepeatedTrackTitleWithoutAlbumTitle",
 			input:       open(t, path.Join("track", "title", "repeated_wo_album.cue")),
-			expectedErr: errors.New("field already set: Sample track title"),
+			expectedErr: "field already set: Sample track title",
 		},
 		{
 			name:        "RepeatedTrackTitleWithAlbumTitle",
 			input:       open(t, path.Join("track", "title", "repeated_w_album.cue")),
-			expectedErr: errors.New("field already set: Sample track title"),
+			expectedErr: "field already set: Sample track title",
 		},
 		{
 			name:        "EmptyTrackTitle",
 			input:       open(t, path.Join("track", "title", "empty.cue")),
-			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+			expectedErr: "expected at least 1 parameters, got 0",
 		},
 		{
 			name:     "TrackTitleWithoutAlbumTitle",
@@ -310,12 +328,12 @@ func TestParseRemGenreCommand(t *testing.T) {
 		{
 			name:        "RepeatedGenre",
 			input:       open(t, path.Join("genre", "repeated.cue")),
-			expectedErr: errors.New("field already set: Rock"),
+			expectedErr: "field already set: Rock",
 		},
 		{
 			name:        "EmptyGenre",
 			input:       open(t, path.Join("genre", "empty.cue")),
-			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+			expectedErr: "expected at least 1 parameters, got 0",
 		},
 	}
 	for _, tc := range tcs {
@@ -328,12 +346,12 @@ func TestParseRemDateCommand(t *testing.T) {
 		{
 			name:        "RepeatedDate",
 			input:       open(t, path.Join("date", "repeated.cue")),
-			expectedErr: errors.New("field already set: 1974-01"),
+			expectedErr: "field already set: 1974-01",
 		},
 		{
 			name:        "EmptyDate",
 			input:       open(t, path.Join("date", "empty.cue")),
-			expectedErr: errors.New("expected at least 1 parameters, got 0"),
+			expectedErr: "expected at least 1 parameters, got 0",
 		},
 	}
 	for _, tc := range tcs {
@@ -344,9 +362,8 @@ func TestParseRemDateCommand(t *testing.T) {
 func runTest(tc testCase) func(t *testing.T) {
 	return func(t *testing.T) {
 		cueSheet, err := Parse(tc.input)
-		if tc.expectedErr != nil {
-			require.Error(t, err)
-			require.Contains(t, err.Error(), tc.expectedErr.Error())
+		if tc.expectedErr != "" {
+			require.ErrorContains(t, err, tc.expectedErr)
 			fmt.Println(err)
 			return
 		}
@@ -362,12 +379,4 @@ func open(t *testing.T, p string) fs.File {
 		require.NoError(t, file.Close())
 	})
 	return file
-}
-
-func generateExceedsMaxTracks() string {
-	cueSheet := fmt.Sprintf("FILE test.flac WAVE\n")
-	for i := range maxTracks + 1 {
-		cueSheet += fmt.Sprintf("TRACK %02d AUDIO\n", i+1)
-	}
-	return cueSheet
 }
