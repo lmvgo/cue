@@ -37,11 +37,18 @@ type IndexPoint struct {
 	Timestamp time.Duration
 }
 
+func (idx *IndexPoint) String() string {
+	m := int(idx.Timestamp.Minutes())
+	s := int(idx.Timestamp.Seconds()) % 60
+	return fmt.Sprintf("%02d:%02d:%02d", m, s, idx.Frame)
+}
+
 // Track represents a single track in a cue sheet file.
 // Required fields: Index01, Type.
 type Track struct {
 	Title   string
 	Type    string
+	Index00 *IndexPoint
 	Index01 IndexPoint
 }
 
@@ -93,7 +100,7 @@ func (c *CueSheet) parseLine(line string) error {
 	case TrackCommand.Name:
 		err = c.parseTrack(parameters)
 	case TrackIndexCommand.Name:
-		err = c.parseTrackIndex01(parameters)
+		err = c.parseTrackIndex(parameters)
 	case TitleCommand.Name:
 		err = c.parseTitle(parameters)
 	case RemCommand.Name:
@@ -179,7 +186,7 @@ func (c *CueSheet) isNextTrack(nr string) error {
 	return nil
 }
 
-func (c *CueSheet) parseTrackIndex01(parameters []string) error {
+func (c *CueSheet) parseTrackIndex(parameters []string) error {
 	if err := TrackIndexCommand.validateParameters(len(parameters)); err != nil {
 		return fmt.Errorf("invalid TRACK INDEX parameters: %w", err)
 	}
@@ -190,8 +197,8 @@ func (c *CueSheet) parseTrackIndex01(parameters []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse index number: %w", err)
 	}
-	if indexNr != 1 {
-		return fmt.Errorf("expected index number 1, got %d", indexNr)
+	if indexNr != 0 && indexNr != 1 {
+		return fmt.Errorf("expected index number 0 or 1, got %d", indexNr)
 	}
 
 	var minutes, seconds, frames int
@@ -201,6 +208,10 @@ func (c *CueSheet) parseTrackIndex01(parameters []string) error {
 	duration := time.Duration(minutes)*time.Minute + time.Duration(seconds)*time.Second
 	index := IndexPoint{Timestamp: duration, Frame: frames}
 	lastTrack := c.Tracks[len(c.Tracks)-1]
+	if indexNr == 0 {
+		lastTrack.Index00 = &IndexPoint{}
+		return assignValue(index, lastTrack.Index00)
+	}
 	return assignValue(index, &lastTrack.Index01)
 }
 
@@ -290,22 +301,26 @@ func (c *CueSheet) validate() error {
 }
 
 func (c *CueSheet) validateTracks() error {
-	for i, track := range c.Tracks {
+	indices := make([]IndexPoint, 0, len(c.Tracks)*2)
+	for _, track := range c.Tracks {
 		if track.Type == "" {
 			return errors.New("missing track type")
 		}
-		if i < len(c.Tracks)-1 {
-			var (
-				timestamp = track.Index01.Timestamp
-				frame     = track.Index01.Frame
+		if track.Index00 != nil {
+			indices = append(indices, *track.Index00)
+		}
+		indices = append(indices, track.Index01)
+	}
+	return validateTrackIndices(indices)
+}
 
-				nextTrack     = c.Tracks[i+1]
-				nextTimestamp = nextTrack.Index01.Timestamp
-				nextFrame     = nextTrack.Index01.Frame
-			)
-			if timestamp > nextTimestamp || (timestamp == nextTimestamp && frame >= nextFrame) {
-				return fmt.Errorf("overlapping indices in tracks %d and %d", i+1, i+2)
-			}
+func validateTrackIndices(indices []IndexPoint) error {
+	for i := 0; i < len(indices)-1; i++ {
+		currIdx := indices[i]
+		nextIdx := indices[i+1]
+
+		if currIdx.Timestamp > nextIdx.Timestamp || (currIdx.Timestamp == nextIdx.Timestamp && currIdx.Frame >= nextIdx.Frame) {
+			return fmt.Errorf("overlapping indices %s and %s", currIdx.String(), nextIdx.String())
 		}
 	}
 	return nil

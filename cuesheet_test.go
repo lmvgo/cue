@@ -43,6 +43,10 @@ var allCueSheet = CueSheet{
 		{
 			Title: "Track 1",
 			Type:  "AUDIO",
+			Index00: &IndexPoint{
+				Frame:     0,
+				Timestamp: 0,
+			},
 			Index01: IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Second,
@@ -51,9 +55,13 @@ var allCueSheet = CueSheet{
 		{
 			Title: "Track 2",
 			Type:  "AUDIO",
-			Index01: IndexPoint{
+			Index00: &IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Minute,
+			},
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1)*time.Minute + time.Duration(1)*time.Second,
 			},
 		},
 	},
@@ -224,12 +232,22 @@ func TestParseTrackIndexCommand(t *testing.T) {
 		{
 			name:        "OverlappingFrames",
 			input:       open(t, path.Join("index", "overlapping_frame.cue")),
-			expectedErr: "overlapping indices in tracks 1 and 2",
+			expectedErr: "overlapping indices 00:00:10 and 00:00:00",
 		},
 		{
 			name:        "OverlappingTimestamps",
 			input:       open(t, path.Join("index", "overlapping_timestamp.cue")),
-			expectedErr: "overlapping indices in tracks 1 and 2",
+			expectedErr: "overlapping indices 00:10:00 and 00:00:00",
+		},
+		{
+			name:        "OverlappingIndex00OverIndex01",
+			input:       open(t, path.Join("index", "overlapping_index_00_01.cue")),
+			expectedErr: "overlapping indices 00:10:00 and 00:01:00",
+		},
+		{
+			name:        "OverlappingIndex01OverIndex00",
+			input:       open(t, path.Join("index", "overlapping_index_01_00.cue")),
+			expectedErr: "overlapping indices 01:00:10 and 01:00:00",
 		},
 		{
 			name:        "NonNumericIndexNumber",
@@ -244,7 +262,7 @@ func TestParseTrackIndexCommand(t *testing.T) {
 		{
 			name:        "UnorderedIndex",
 			input:       open(t, path.Join("index", "unordered.cue")),
-			expectedErr: "expected index number 1, got 2",
+			expectedErr: "expected index number 0 or 1, got 2",
 		},
 		{
 			name:        "InsufficientIndexParams",
