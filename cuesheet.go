@@ -23,7 +23,7 @@ type Command struct {
 	MinParams   int
 }
 
-var FileCommand = Command{Name: "FILE", ExactParams: 2}
+var FileCommand = Command{Name: "FILE", MinParams: 2}
 var PerformerCommand = Command{Name: "PERFORMER", MinParams: 1}
 var TitleCommand = Command{Name: "TITLE", MinParams: 1}
 var TrackCommand = Command{Name: "TRACK", ExactParams: 2}
@@ -58,13 +58,24 @@ type Track struct {
 type CueSheet struct {
 	AlbumPerformer string
 	AlbumTitle     string
+	Remarks        []string
 	Date           string
 	DiscID         uint32
-	Format         string
+	Format         AudioFormat
 	FileName       string
 	Genre          string
 	Tracks         []*Track
 }
+
+type AudioFormat string
+
+const (
+	AudioFormatWave     = "WAVE"
+	AudioFormatMP3      = "MP3"
+	AudioFormatAIFF     = "AIFF"
+	AudioFormatBinary   = "BINARY"
+	AudioFormatMotorola = "MOTOROLA"
+)
 
 // Parse reads the cue sheet data from the provided reader and returns a parsed CueSheet struct.
 func Parse(reader io.Reader) (*CueSheet, error) {
@@ -135,7 +146,14 @@ func (c *CueSheet) parseFile(parameters []string) error {
 		return fmt.Errorf("invalid FILE parameters: %w", err)
 	}
 	last := len(parameters) - 1
-	if err := parseString(parameters[last], &c.Format); err != nil {
+	format := AudioFormat(parameters[last])
+	switch format {
+	case AudioFormatWave, AudioFormatMotorola, AudioFormatBinary, AudioFormatAIFF, AudioFormatMP3:
+	default:
+		return fmt.Errorf("invalid FILE format: got %s, expected one of WAVE, MP3, AIFF, MOTOROLA, BINARY", format)
+	}
+
+	if err := assignValue(format, &c.Format); err != nil {
 		return fmt.Errorf("error parsing FILE format: %w", err)
 	}
 	if err := parseString(strings.Join(parameters[:last], " "), &c.FileName); err != nil {
@@ -247,9 +265,10 @@ func (c *CueSheet) parseRem(parameters []string) error {
 		err = c.parseDate(parameters[1:])
 	case "DISCID":
 		err = c.parseDiscID(parameters[1:])
+	case "COMMENT":
+		err = c.parseRemark(parameters[1:])
 	default:
-		//TODO: handle REM comments
-		return nil
+		err = c.parseRemark(parameters)
 	}
 	if err != nil {
 		return fmt.Errorf("error parsing REM %q command: %w", command, err)
@@ -293,6 +312,15 @@ func (c *CueSheet) parseGenre(parameters []string) error {
 	if err := parseString(strings.Join(parameters, " "), &c.Genre); err != nil {
 		return fmt.Errorf("error parsing REM GENRE parameters: %w", err)
 	}
+	return nil
+}
+
+func (c *CueSheet) parseRemark(parameters []string) error {
+	var remark string
+	if err := parseString(strings.Join(parameters, " "), &remark); err != nil {
+		return fmt.Errorf("error parsing REM parameters: %w", err)
+	}
+	c.Remarks = append(c.Remarks, remark)
 	return nil
 }
 
