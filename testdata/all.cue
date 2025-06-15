@@ -1,8 +1,9 @@
 FILE "sample.flac" WAVE
-REM GENRE "Heavy Metal"
+REM GENRE "Sample Genre"
 PERFORMER "Sample Album Artist"
 TITLE "Sample Album Title"
 REM DATE 1989
+REM DISCID F9E8D7C6
 TRACK 01 AUDIO
     TITLE "Track 1"
     INDEX 00 00:00:00

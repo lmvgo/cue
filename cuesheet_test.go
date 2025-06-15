@@ -36,9 +36,10 @@ var allCueSheet = CueSheet{
 	AlbumPerformer: "Sample Album Artist",
 	AlbumTitle:     "Sample Album Title",
 	Date:           "1989",
+	DiscID:         0xF9E8D7C6,
 	FileName:       "sample.flac",
 	Format:         "WAVE",
-	Genre:          "Heavy Metal",
+	Genre:          "Sample Genre",
 	Tracks: []*Track{
 		{
 			Title: "Track 1",
@@ -370,6 +371,39 @@ func TestParseRemDateCommand(t *testing.T) {
 			name:        "EmptyDate",
 			input:       open(t, path.Join("date", "empty.cue")),
 			expectedErr: "expected at least 1 parameters, got 0",
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, runTest(tc))
+	}
+}
+
+func TestParseRemDiscIDCommand(t *testing.T) {
+	tcs := []testCase{
+		{
+			name:        "MissingParameter",
+			input:       open(t, path.Join("discid", "missing.cue")),
+			expectedErr: "expected 1 parameters, got 0",
+		},
+		{
+			name:        "ExcessiveParameters",
+			input:       open(t, path.Join("discid", "excessive.cue")),
+			expectedErr: "expected 1 parameters, got 2",
+		},
+		{
+			name:        "NotHex",
+			input:       open(t, path.Join("discid", "not_hex.cue")),
+			expectedErr: "error parsing hex string: expected integer",
+		},
+		{
+			name:        "TooLong",
+			input:       open(t, path.Join("discid", "too_long.cue")),
+			expectedErr: "expected 8 hex digits, got 9",
+		},
+		{
+			name:        "TooShort",
+			input:       open(t, path.Join("discid", "too_short.cue")),
+			expectedErr: "expected 8 hex digits, got 7",
 		},
 	}
 	for _, tc := range tcs {

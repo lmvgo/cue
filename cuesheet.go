@@ -31,6 +31,7 @@ var TrackIndexCommand = Command{Name: "INDEX", ExactParams: 2}
 var RemCommand = Command{Name: "REM", MinParams: 1}
 var RemGenreCommand = Command{Name: "GENRE", MinParams: 1}
 var RemDateCommand = Command{Name: "DATE", MinParams: 1}
+var RemDiscIDCommand = Command{Name: "DISCID", ExactParams: 1}
 
 type IndexPoint struct {
 	Frame     int
@@ -58,6 +59,7 @@ type CueSheet struct {
 	AlbumPerformer string
 	AlbumTitle     string
 	Date           string
+	DiscID         uint32
 	Format         string
 	FileName       string
 	Genre          string
@@ -243,6 +245,8 @@ func (c *CueSheet) parseRem(parameters []string) error {
 		err = c.parseGenre(parameters[1:])
 	case "DATE":
 		err = c.parseDate(parameters[1:])
+	case "DISCID":
+		err = c.parseDiscID(parameters[1:])
 	default:
 		//TODO: handle REM comments
 		return nil
@@ -259,6 +263,25 @@ func (c *CueSheet) parseDate(parameters []string) error {
 	}
 	if err := parseString(strings.Join(parameters, " "), &c.Date); err != nil {
 		return fmt.Errorf("error parsing REM DATE parameters: %w", err)
+	}
+	return nil
+}
+
+func (c *CueSheet) parseDiscID(parameters []string) error {
+	if err := RemDiscIDCommand.validateParameters(len(parameters)); err != nil {
+		return fmt.Errorf("invalid REM DISCID parameters: %w", err)
+	}
+	discIDHex := parameters[0]
+	if len(discIDHex) != 8 {
+		return fmt.Errorf("expected 8 hex digits, got %d", len(discIDHex))
+	}
+
+	var discID uint32
+	if _, err := fmt.Sscanf(discIDHex, "%X", &discID); err != nil {
+		return fmt.Errorf("error parsing hex string: %w", err)
+	}
+	if err := assignValue(discID, &c.DiscID); err != nil {
+		return fmt.Errorf("error parsing REM DISC parameters: %w", err)
 	}
 	return nil
 }
