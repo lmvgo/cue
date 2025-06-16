@@ -23,7 +23,7 @@ type testCase struct {
 }
 
 var minimalCueSheet = CueSheet{
-	FileName: "sample.flac",
+	FileName: "my sample file.flac",
 	Format:   "WAVE",
 	Tracks: []*Track{
 		{
@@ -37,9 +37,10 @@ var allCueSheet = CueSheet{
 	AlbumTitle:     "Sample Album Title",
 	Date:           "1989",
 	DiscID:         0xF9E8D7C6,
-	FileName:       "sample.flac",
+	FileName:       "my sample file.flac",
 	Format:         "WAVE",
 	Genre:          "Sample Genre",
+	Remarks:        []string{"Sample comment", "Sample remark"},
 	Tracks: []*Track{
 		{
 			Title: "Track 1",
@@ -152,12 +153,12 @@ func TestParseFileCommand(t *testing.T) {
 		{
 			name:        "InsufficientFileParams",
 			input:       open(t, path.Join("file", "insufficient.cue")),
-			expectedErr: "expected 2 parameters, got 1",
+			expectedErr: "expected at least 2 parameters, got 1",
 		},
 		{
-			name:        "ExcessiveFileParams",
-			input:       open(t, path.Join("file", "excessive.cue")),
-			expectedErr: "expected 2 parameters, got 3",
+			name:        "WrongFormat",
+			input:       open(t, path.Join("file", "wrong_format.cue")),
+			expectedErr: "got NOT_A_FORMAT, expected one of WAVE, MP3, AIFF, MOTOROLA, BINARY",
 		},
 		{
 			name:        "EmptyFileName",
