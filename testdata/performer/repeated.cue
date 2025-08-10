@@ -1,5 +1,5 @@
 FILE "sample.flac" WAVE
-PERFORMER "Sample Album Artist"
-PERFORMER "Another Sample Album Artist"
+PERFORMER "Sample album artist"
+PERFORMER "Another sample album artist"
 TRACK 01 AUDIO
 INDEX 01 00:00:00

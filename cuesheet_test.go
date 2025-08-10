@@ -33,8 +33,8 @@ var minimalCueSheet = CueSheet{
 }
 
 var allCueSheet = CueSheet{
-	AlbumPerformer: "Sample Album Artist",
-	AlbumTitle:     "Sample Album Title",
+	AlbumPerformer: "Sample album artist",
+	AlbumTitle:     "Sample album title",
 	Date:           "1989",
 	DiscID:         0xF9E8D7C6,
 	FileName:       "my sample file.flac",
@@ -43,8 +43,9 @@ var allCueSheet = CueSheet{
 	Remarks:        []string{"Sample comment", "Sample remark"},
 	Tracks: []*Track{
 		{
-			Title: "Track 1",
-			Type:  "AUDIO",
+			Title:     "Track 1",
+			Performer: "Sample track artist 1",
+			Type:      "AUDIO",
 			Index00: &IndexPoint{
 				Frame:     0,
 				Timestamp: 0,
@@ -55,8 +56,9 @@ var allCueSheet = CueSheet{
 			},
 		},
 		{
-			Title: "Track 2",
-			Type:  "AUDIO",
+			Title:     "Track 2",
+			Performer: "Sample track artist 2",
+			Type:      "AUDIO",
 			Index00: &IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Minute,
@@ -106,6 +108,51 @@ var cueSheetWithInterleavedTrackTitles = CueSheet{
 		{
 			Title: "Track 2",
 			Type:  "AUDIO",
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1) * time.Minute,
+			},
+		},
+	},
+}
+
+var cueSheetWithTrackPerformerAndNoAlbumPerformer = CueSheet{
+	FileName: "sample.flac",
+	Format:   "WAVE",
+	Tracks: []*Track{
+		{
+			Performer: "Sample track artist 1",
+			Type:      "AUDIO",
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1) * time.Second,
+			},
+		},
+		{
+			Performer: "Sample track artist 2",
+			Type:      "AUDIO",
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1) * time.Minute,
+			},
+		},
+	},
+}
+
+var cueSheetWithInterleavedTrackPerformers = CueSheet{
+	FileName: "sample.flac",
+	Format:   "WAVE",
+	Tracks: []*Track{
+		{
+			Type: "AUDIO",
+			Index01: IndexPoint{
+				Frame:     0,
+				Timestamp: time.Duration(1) * time.Second,
+			},
+		},
+		{
+			Performer: "Sample track artist",
+			Type:      "AUDIO",
 			Index01: IndexPoint{
 				Frame:     0,
 				Timestamp: time.Duration(1) * time.Minute,
@@ -285,14 +332,39 @@ func TestParseTrackIndexCommand(t *testing.T) {
 func TestParsePerformerCommand(t *testing.T) {
 	tcs := []testCase{
 		{
-			name:        "RepeatedPerformer",
+			name:        "RepeatedAlbumPerformer",
 			input:       open(t, path.Join("performer", "repeated.cue")),
-			expectedErr: "field already set: Sample Album Artist",
+			expectedErr: "field already set: Sample album artist",
 		},
 		{
-			name:        "EmptyPerformer",
+			name:        "EmptyAlbumPerformer",
 			input:       open(t, path.Join("performer", "empty.cue")),
 			expectedErr: "expected at least 1 parameters, got 0",
+		},
+		{
+			name:        "RepeatedTrackPerformerWithoutAlbumPerformer",
+			input:       open(t, path.Join("track", "performer", "repeated_wo_album.cue")),
+			expectedErr: "field already set: Sample track artist",
+		},
+		{
+			name:        "RepeatedTrackPerformerWithAlbumPerformer",
+			input:       open(t, path.Join("track", "performer", "repeated_w_album.cue")),
+			expectedErr: "field already set: Sample track artist",
+		},
+		{
+			name:        "EmptyTrackPerformer",
+			input:       open(t, path.Join("track", "performer", "empty.cue")),
+			expectedErr: "expected at least 1 parameters, got 0",
+		},
+		{
+			name:     "TrackPerformerWithoutAlbumPerformer",
+			input:    open(t, path.Join("track", "performer", "without_album.cue")),
+			expected: cueSheetWithTrackPerformerAndNoAlbumPerformer,
+		},
+		{
+			name:     "InterleavedTrackPerformers",
+			input:    open(t, path.Join("track", "performer", "interleaved.cue")),
+			expected: cueSheetWithInterleavedTrackPerformers,
 		},
 	}
 	for _, tc := range tcs {
@@ -305,7 +377,7 @@ func TestParseTitleCommand(t *testing.T) {
 		{
 			name:        "RepeatedAlbumTitle",
 			input:       open(t, path.Join("title", "repeated.cue")),
-			expectedErr: "field already set: Sample Album Title",
+			expectedErr: "field already set: Sample album title",
 		},
 		{
 			name:        "EmptyAlbumTitle",
@@ -421,7 +493,7 @@ func runTest(tc testCase) func(t *testing.T) {
 			return
 		}
 		require.NoError(t, err)
-		require.Equal(t, tc.expected, *cueSheet)
+		require.EqualValues(t, tc.expected, *cueSheet)
 	}
 }
 
